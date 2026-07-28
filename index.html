@@ -131,6 +131,7 @@
         <button type="button" class="btn-menu" onclick="tampilkanLanding()">&larr; Kembali ke Menu</button>
         <h3>Daftar Booking</h3>
         <button type="button" class="btn-download" id="btnDownload" style="display:none;" onclick="exportKeExcel()">Download Data (XLS/CSV)</button>
+        <button type="button" class="btn-cancel" id="btnBersihkan" style="display:none;" onclick="bersihkanRiwayat()">&#129529; Bersihkan Riwayat (Tanggal Lewat)</button>
         <table>
             <thead>
                 <tr>
@@ -153,7 +154,7 @@
     let modeAksiAdmin = false;    // true kalau sedang login sebagai Admin (menentukan kolom Aksi aktif/terkunci)
 
     // >>> GANTI baris di bawah ini dengan URL Web App Apps Script Anda setelah proses deploy <<<
-    const API_URL = "https://script.google.com/macros/s/AKfycbzW-hwBtDWo0SN9imao51xhRCW2U5H8aEIILje-qwDuPKmHiheEZcvgEn_Pfs91HTV7Ug/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwEpDILs5i52t_vR4lcYXOpxJMrBT5ajXkA70yqCryez1dv2eDM-N4E0Ms_RShbutCP4Q/exec";
 
     // Jam mulainya "malam" (24 jam). Sebelum jam ini dianggap siang/pagi-sore.
     const JAM_MALAM_MULAI = 18; // jam 18:00
@@ -189,6 +190,7 @@
         document.getElementById('formBox').style.display = 'block';
         document.getElementById('daftarBookingBox').style.display = 'block';
         document.getElementById('btnDownload').style.display = 'none';
+        document.getElementById('btnBersihkan').style.display = 'none';
         modeAksiAdmin = false;
         muatSemuaBooking();
     }
@@ -207,6 +209,7 @@
         document.getElementById('formBox').style.display = 'none';
         document.getElementById('daftarBookingBox').style.display = 'block';
         document.getElementById('btnDownload').style.display = 'inline-block';
+        document.getElementById('btnBersihkan').style.display = 'inline-block';
         muatSemuaBooking();
     }
 
@@ -702,6 +705,21 @@
         const hasil = await panggilAPI({ action: 'batalkan', id, password });
         if (hasil.success) muatSemuaBooking();
         else alert(hasil.message || 'Gagal membatalkan.');
+    }
+
+    // Memindahkan (bukan menghapus) semua booking dengan tanggal SUDAH LEWAT ke
+    // sheet arsip terpisah ("Booking - Arsip"), supaya daftar aktif tidak penuh.
+    async function bersihkanRiwayat() {
+        if (!confirm('Pindahkan semua booking dengan tanggal SUDAH LEWAT ke arsip?\n\nData TIDAK akan hilang - hanya dipindah ke sheet "Booking - Arsip" di Google Sheet Anda, supaya tidak memenuhi daftar booking aktif. Booking hari ini & yang akan datang tidak akan tersentuh.')) return;
+        const password = mintaPasswordAdmin('Masukkan Password Admin untuk membersihkan riwayat:');
+        if (password === null) return;
+        const hasil = await panggilAPI({ action: 'bersihkanRiwayat', password });
+        if (hasil.success) {
+            alert(`Berhasil memindahkan ${hasil.jumlah} booking lama ke sheet arsip.`);
+            muatSemuaBooking();
+        } else {
+            alert(hasil.message || 'Gagal membersihkan riwayat.');
+        }
     }
 
     function renderTabel(data) {
