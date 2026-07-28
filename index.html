@@ -71,7 +71,6 @@
 
     <!-- STEP 1: FORM BOOKING (khusus penyewa) -->
     <div class="box" id="formBox" style="display:none;">
-        <button type="button" class="btn-menu" onclick="tampilkanLanding()">&larr; Kembali ke Menu</button>
         <h3>Langkah 1: Data Booking &amp; Surat Permohonan</h3>
         <form id="bookingForm">
             <label>Nama:</label> <input type="text" id="nama" required>
@@ -121,11 +120,13 @@
         </form>
     </div>
 
-    <!-- DASHBOARD ADMIN -->
-    <div id="adminBox" style="display:none;">
-        <button type="button" class="btn-menu" onclick="tampilkanLanding()">&larr; Keluar / Kembali ke Menu</button>
+    <!-- DAFTAR BOOKING: tampil untuk Penyewa maupun Admin. Kolom Aksi hanya aktif
+         (berisi tombol yang bisa mengubah data) kalau sedang login sebagai Admin;
+         kalau tidak, kolom itu hanya menampilkan tombol terkunci. -->
+    <div id="daftarBookingBox" style="display:none;">
+        <button type="button" class="btn-menu" onclick="tampilkanLanding()">&larr; Kembali ke Menu</button>
         <h3>Daftar Booking</h3>
-        <button type="button" class="btn-download" onclick="exportKeExcel()">Download Data (XLS/CSV)</button>
+        <button type="button" class="btn-download" id="btnDownload" style="display:none;" onclick="exportKeExcel()">Download Data (XLS/CSV)</button>
         <table>
             <thead>
                 <tr>
@@ -145,9 +146,10 @@
     const form = document.getElementById('bookingForm');
     const tabelBody = document.getElementById('tabelBody');
     let sesiAdminPassword = null; // password admin yg sudah tervalidasi di sesi saat ini (hilang kalau reload/kembali ke menu)
+    let modeAksiAdmin = false;    // true kalau sedang login sebagai Admin (menentukan kolom Aksi aktif/terkunci)
 
     // >>> GANTI baris di bawah ini dengan URL Web App Apps Script Anda setelah proses deploy <<<
-    const API_URL = "https://script.google.com/macros/s/AKfycbzW-hwBtDWo0SN9imao51xhRCW2U5H8aEIILje-qwDuPKmHiheEZcvgEn_Pfs91HTV7Ug/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbwEpDILs5i52t_vR4lcYXOpxJMrBT5ajXkA70yqCryez1dv2eDM-N4E0Ms_RShbutCP4Q/exec";
 
     // Jam mulainya "malam" (24 jam). Sebelum jam ini dianggap siang/pagi-sore.
     const JAM_MALAM_MULAI = 18; // jam 18:00
@@ -173,14 +175,18 @@
     function tampilkanLanding() {
         document.getElementById('landingBox').style.display = 'block';
         document.getElementById('formBox').style.display = 'none';
-        document.getElementById('adminBox').style.display = 'none';
+        document.getElementById('daftarBookingBox').style.display = 'none';
         sesiAdminPassword = null; // "logout" - password sesi dilupakan saat kembali ke menu
+        modeAksiAdmin = false;
     }
 
     function masukSebagaiPenyewa() {
         document.getElementById('landingBox').style.display = 'none';
         document.getElementById('formBox').style.display = 'block';
-        document.getElementById('adminBox').style.display = 'none';
+        document.getElementById('daftarBookingBox').style.display = 'block';
+        document.getElementById('btnDownload').style.display = 'none';
+        modeAksiAdmin = false;
+        muatSemuaBooking();
     }
 
     async function masukSebagaiAdmin() {
@@ -192,9 +198,11 @@
             return;
         }
         sesiAdminPassword = password; // dipakai ulang otomatis utk aksi admin selama sesi ini
+        modeAksiAdmin = true;
         document.getElementById('landingBox').style.display = 'none';
         document.getElementById('formBox').style.display = 'none';
-        document.getElementById('adminBox').style.display = 'block';
+        document.getElementById('daftarBookingBox').style.display = 'block';
+        document.getElementById('btnDownload').style.display = 'inline-block';
         muatSemuaBooking();
     }
 
@@ -714,24 +722,31 @@
                 statusBalasanTeks = 'Menunggu Surat Balasan Diunggah';
             }
 
-            let aksiHtml = `<button type="button" class="btn-lihat" onclick="lihatDokumen('${b.suratUrl}')">Lihat Surat</button>`;
+            let aksiHtml;
+            if (!modeAksiAdmin) {
+                // Penyewa (belum login admin): kolom Aksi terkunci, tidak ada tombol
+                // yang bisa mengubah data. Klik tombol ini langsung membuka login Admin.
+                aksiHtml = `<button type="button" class="btn-menu" onclick="masukSebagaiAdmin()">&#128274; Login Admin</button>`;
+            } else {
+                aksiHtml = `<button type="button" class="btn-lihat" onclick="lihatDokumen('${b.suratUrl}')">Lihat Surat</button>`;
 
-            if (b.statusSurat === 'menunggu') {
-                aksiHtml += `<button type="button" class="btn-kirim-wa" onclick="kirimWAMenungguDisposisi('${b.id}')">Kirim WA: Menunggu Disposisi</button>`;
-                aksiHtml += `<button type="button" class="btn-forward" onclick="validasiKepalaDinas('${b.id}')">Validasi &amp; Kirim Instruksi Pembayaran</button>`;
+                if (b.statusSurat === 'menunggu') {
+                    aksiHtml += `<button type="button" class="btn-kirim-wa" onclick="kirimWAMenungguDisposisi('${b.id}')">Kirim WA: Menunggu Disposisi</button>`;
+                    aksiHtml += `<button type="button" class="btn-forward" onclick="validasiKepalaDinas('${b.id}')">Validasi &amp; Kirim Instruksi Pembayaran</button>`;
+                }
+                if (b.statusSurat === 'divalidasi' && b.statusBalasan === 'na') {
+                    aksiHtml += `<button type="button" class="btn-balasan" onclick="uploadSuratBalasan('${b.id}')">Upload Surat Balasan Akhir</button>`;
+                }
+                if (b.suratBalasanUrl) {
+                    aksiHtml += `<button type="button" class="btn-lihat" onclick="lihatDokumen('${b.suratBalasanUrl}')">Lihat Surat Balasan</button>`;
+                    aksiHtml += `<button type="button" class="btn-unduh" onclick="window.open('${b.suratBalasanUrl}','_blank')">Unduh Surat Balasan</button>`;
+                }
+                if (b.statusBalasan === 'diunggah') {
+                    aksiHtml += `<button type="button" class="btn-kirim-wa" onclick="kirimSuratBalasanWA('${b.id}')">Kirim ke WhatsApp</button>`;
+                    aksiHtml += `<button type="button" class="btn-confirm" onclick="tandaiBalasanTerkirim('${b.id}')">Tandai Sudah Dikirim</button>`;
+                }
+                aksiHtml += `<button type="button" class="btn-cancel" onclick="prosesPembatalan('${b.id}')">Batalkan</button>`;
             }
-            if (b.statusSurat === 'divalidasi' && b.statusBalasan === 'na') {
-                aksiHtml += `<button type="button" class="btn-balasan" onclick="uploadSuratBalasan('${b.id}')">Upload Surat Balasan Akhir</button>`;
-            }
-            if (b.suratBalasanUrl) {
-                aksiHtml += `<button type="button" class="btn-lihat" onclick="lihatDokumen('${b.suratBalasanUrl}')">Lihat Surat Balasan</button>`;
-                aksiHtml += `<button type="button" class="btn-unduh" onclick="window.open('${b.suratBalasanUrl}','_blank')">Unduh Surat Balasan</button>`;
-            }
-            if (b.statusBalasan === 'diunggah') {
-                aksiHtml += `<button type="button" class="btn-kirim-wa" onclick="kirimSuratBalasanWA('${b.id}')">Kirim ke WhatsApp</button>`;
-                aksiHtml += `<button type="button" class="btn-confirm" onclick="tandaiBalasanTerkirim('${b.id}')">Tandai Sudah Dikirim</button>`;
-            }
-            aksiHtml += `<button type="button" class="btn-cancel" onclick="prosesPembatalan('${b.id}')">Batalkan</button>`;
 
             row.innerHTML = `
                 <td>${index + 1}</td>
