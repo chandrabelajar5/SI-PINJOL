@@ -237,6 +237,15 @@
         hentikanPolling();
         idBookingDiketahui = new Set(); // reset supaya tidak notif "booking lama" saat login lagi
         hentikanKedipJudulTab();
+        resetCekStatusBooking();
+        form.reset(); // kosongkan form booking, jaga-jaga dipakai bergantian di device yang sama
+        // form.reset() cuma mengosongkan NILAI input/select - elemen dependen yang
+        // tampil/hilang berdasarkan pilihan sebelumnya (jenis lapangan, kalender,
+        // info harga) perlu disembunyikan manual juga supaya benar-benar bersih.
+        document.getElementById('jenisLapanganWrapper').style.display = 'none';
+        document.getElementById('jenisPenggunaanWrapper').style.display = 'none';
+        document.getElementById('kalenderWrapper').style.display = 'none';
+        document.getElementById('infoHarga').innerText = '';
     }
 
     function masukSebagaiPenyewa() {
@@ -248,8 +257,18 @@
         document.getElementById('btnAktifkanNotif').style.display = 'none';
         modeAksiAdmin = false;
         hentikanPolling();
+        resetCekStatusBooking(); // kosongkan sisa pencarian penyewa sebelumnya (device dipakai bergantian)
         muatSemuaBooking();
     }
+
+    // Kosongkan kotak nomor WA & hasil "Cek Status Booking" - dipanggil tiap kali
+    // masuk/keluar mode Penyewa, supaya sisa data pencarian orang sebelumnya
+    // (kalau device dipakai bergantian) tidak nyangkut kelihatan orang berikutnya.
+    function resetCekStatusBooking() {
+        document.getElementById('cekStatusWa').value = '';
+        document.getElementById('hasilCekStatus').innerHTML = '';
+    }
+
 
     async function masukSebagaiAdmin() {
         const password = prompt('Masukkan Password Admin:');
