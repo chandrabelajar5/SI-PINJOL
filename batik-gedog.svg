@@ -1,0 +1,28 @@
+<svg width="160" height="160" viewBox="0 0 160 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <g id="sayap">
+      <!-- motif sayap burung bergaya, ciri khas batik pesisir -->
+      <path d="M0,0 C10,-14 28,-18 40,-10 C30,-8 22,-2 18,8 C14,-2 6,-6 0,0 Z" fill="none" stroke="#FFFFFF" stroke-width="1.1" opacity="0.5"/>
+      <path d="M2,2 C10,-8 22,-11 32,-6" fill="none" stroke="#FFFFFF" stroke-width="0.8" opacity="0.35"/>
+    </g>
+    <g id="kuntum">
+      <!-- lung-lungan / kuntum bunga kecil -->
+      <circle cx="0" cy="0" r="2.6" fill="none" stroke="#FFFFFF" stroke-width="0.9" opacity="0.45"/>
+      <circle cx="0" cy="0" r="0.9" fill="#FFFFFF" opacity="0.4"/>
+      <path d="M0,-2.6 C-1,-6 1,-6 0,-9" fill="none" stroke="#FFFFFF" stroke-width="0.7" opacity="0.35"/>
+    </g>
+  </defs>
+
+  <use href="#sayap" x="14" y="20" />
+  <use href="#sayap" x="94" y="20" transform="scale(-1,1) translate(-228,0)"/>
+  <use href="#sayap" x="14" y="100" transform="scale(1,-1) translate(0,-180)"/>
+  <use href="#sayap" x="94" y="100" transform="scale(-1,-1) translate(-228,-180)"/>
+
+  <use href="#kuntum" x="80" y="14" />
+  <use href="#kuntum" x="16" y="60" />
+  <use href="#kuntum" x="144" y="60" />
+  <use href="#kuntum" x="80" y="80" />
+  <use href="#kuntum" x="16" y="140" />
+  <use href="#kuntum" x="144" y="140" />
+  <use href="#kuntum" x="80" y="150" />
+</svg>
